@@ -1,118 +1,626 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>IDV Assignment 4 – D3 Chart</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<script src="https://d3js.org/d3.v7.min.js"></script>
+  <meta charset="UTF-8" />
+  <title>IDV Assignment 4 – Robustness Benchmark Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
 
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 1000px;
-    margin: 40px auto;
-  }
-  #chart { margin-top: 40px; }
-  .bar:hover { opacity: 0.7; }
-  .tooltip {
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56,189,248,0.18);
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --grid: #1f2937;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, #020617 55%, #000 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 32px 16px 40px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 1120px;
+    }
+
+    header {
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      margin: 0 0 8px;
+      letter-spacing: 0.03em;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 640px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2.5fr) minmax(260px, 1fr);
+      gap: 18px;
+    }
+
+    @media (max-width: 880px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, #1f2937 0, #020617 70%);
+      border-radius: 18px;
+      border: 1px solid rgba(148,163,184,0.18);
+      box-shadow:
+        0 18px 45px rgba(15,23,42,0.9),
+        0 0 0 1px rgba(148,163,184,0.18);
+      padding: 18px 18px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
       position: absolute;
-      padding: 6px 10px;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      visibility: hidden;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(56,189,248,0.16) 0, transparent 46%),
+        radial-gradient(circle at 100% 100%, rgba(59,130,246,0.12) 0, transparent 52%);
+      opacity: 0.9;
       pointer-events: none;
-  }
-</style>
+    }
+
+    .card-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--text-muted);
+    }
+
+    .card-subtitle {
+      font-size: 0.8rem;
+      color: var(--accent);
+    }
+
+    #chart-container {
+      margin-top: 8px;
+    }
+
+    svg {
+      width: 100%;
+      height: 420px;
+      background: linear-gradient(180deg, rgba(15,23,42,0.9), #020617 70%);
+      border-radius: 12px;
+    }
+
+    .axis path, .axis line {
+      stroke: #4b5563;
+    }
+
+    .axis text {
+      fill: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .y-grid line {
+      stroke: var(--grid);
+      stroke-dasharray: 2,4;
+    }
+
+    .bar {
+      rx: 4;
+      ry: 4;
+      cursor: pointer;
+    }
+
+    .bar:hover {
+      stroke: #f9fafb;
+      stroke-width: 1px;
+      filter: drop-shadow(0 0 8px rgba(56,189,248,0.4));
+    }
+
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: #020617;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--text-main);
+      border: 1px solid rgba(148,163,184,0.6);
+      box-shadow: 0 12px 30px rgba(15,23,42,0.9);
+      visibility: hidden;
+      white-space: nowrap;
+      z-index: 20;
+    }
+
+    .tooltip strong {
+      color: var(--accent);
+    }
+
+    /* Controls */
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .control-label {
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+
+    select {
+      background: rgba(15,23,42,0.92);
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      padding: 6px 10px;
+      color: var(--text-main);
+      font-size: 0.82rem;
+      outline: none;
+      appearance: none;
+      position: relative;
+    }
+
+    select:focus {
+      box-shadow: 0 0 0 1px var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    /* Side panel */
+    .side-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.5);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 0 4px 4px 0;
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .stat-grid {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      background: rgba(15,23,42,0.9);
+      border-radius: 12px;
+      padding: 8px 10px;
+      border: 1px solid rgba(31,41,55,0.9);
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .stat-value {
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .legend {
+      margin-top: 10px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+    }
+
+    .hint {
+      margin-top: 6px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      opacity: 0.9;
+    }
+
+  </style>
 </head>
-
 <body>
+<div class="page">
+  <header>
+    <h1>Robustness Benchmark Explorer</h1>
+    <p>
+      Interactive D3.js visualisation of robustness methods across datasets.
+      Use the controls to explore <strong>Std Acc</strong>, <strong>CRR</strong>, and <strong>CRA</strong>
+      for all approaches and datasets in <code>data_1.json</code>.
+    </p>
+  </header>
 
-<h1>IDV Assignment 4 – Interactive Chart</h1>
-<p>This chart loads <code>data_1.json</code> and displays Std Acc (CIFAR100).</p>
+  <div class="layout">
+    <!-- Main chart card -->
+    <section class="card">
+      <div class="card-inner">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Chart</div>
+            <div class="card-subtitle" id="chartSubtitle">
+              Loading metric & dataset…
+            </div>
+          </div>
+        </div>
 
-<div id="chart"></div>
+        <div class="controls">
+          <div class="control-group">
+            <span class="control-label">Metric</span>
+            <select id="metricSelect"></select>
+          </div>
+          <div class="control-group">
+            <span class="control-label">Dataset</span>
+            <select id="datasetSelect"></select>
+          </div>
+        </div>
+
+        <div id="chart-container">
+          <svg id="chartSvg" viewBox="0 0 900 420" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Side info card -->
+    <aside class="card">
+      <div class="card-inner">
+        <div class="side-title">Current View</div>
+
+        <div id="currentPills"></div>
+
+        <div class="stat-grid" id="statGrid">
+          <!-- Stats injected by JS -->
+        </div>
+
+        <div class="legend" id="legendBox">
+          <!-- Legend injected by JS -->
+        </div>
+
+        <div class="hint">
+          • Hover bars to see exact values (interaction).<br/>
+          • Bars animate when you change metric / dataset (transition).<br/>
+          • All approaches, metrics (Std Acc / CRR / CRA) and datasets
+            (CIFAR100 / CIFAR10 / SVHN / MNIST) are available from this dashboard.
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
 <div class="tooltip" id="tooltip"></div>
 
 <script>
-// Load your real JSON
-d3.json("data_1.json").then(raw => {
+  const svg = d3.select("#chartSvg");
+  const tooltip = d3.select("#tooltip");
 
-    // raw 的结构 = { ERM:{}, DA:{}, ... }
-    // 转换成数组 [{Approach:"ERM", StdAcc_C100:81.03}, ...]
+  const margin = { top: 40, right: 20, bottom: 90, left: 70 };
+  const innerWidth = 900 - margin.left - margin.right;
+  const innerHeight = 420 - margin.top - margin.bottom;
 
-    const data = Object.keys(raw).map(key => ({
-        Approach: key,
-        CIFAR100: raw[key]["Std Acc"]["CIFAR100"]
-    }));
+  const chartGroup = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Now data = [
-    //   {Approach:"ERM", CIFAR100:81.03},
-    //   {Approach:"DA", CIFAR100:78.27},
+  const xScale = d3.scaleBand().padding(0.25);
+  const yScale = d3.scaleLinear();
+  const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
+
+  const xAxisGroup = chartGroup.append("g").attr("class", "axis x-axis")
+    .attr("transform", `translate(0, ${innerHeight})`);
+  const yAxisGroup = chartGroup.append("g").attr("class", "axis y-axis");
+
+  // grid lines
+  const yGrid = chartGroup.append("g").attr("class", "y-grid");
+
+  function formatMetric(metricKey) {
+    // "Std Acc" -> "Standard Accuracy"
+    if (metricKey === "Std Acc") return "Standard Accuracy";
+    if (metricKey === "CRR") return "Certified Robustness Rate";
+    if (metricKey === "CRA") return "Certified Robust Accuracy";
+    return metricKey;
+  }
+
+  function formatDataset(dsKey) {
+    // e.g. "CIFAR100" -> "CIFAR-100"
+    if (dsKey === "CIFAR100") return "CIFAR-100";
+    if (dsKey === "CIFAR10") return "CIFAR-10";
+    return dsKey;
+  }
+
+  d3.json("data_1.json").then(raw => {
+    // raw 结构:
+    // {
+    //   "ERM": { "Std Acc": { "CIFAR100": ..., ... }, "CRR": {...}, "CRA": {...} },
+    //   "DA":  { ... },
     //   ...
-    // ]
+    // }
 
-    const margin = {top: 40, right: 30, bottom: 80, left: 70};
-    const width = 900 - margin.left - margin.right;
-    const height = 500 - margin.top - margin.bottom;
+    const approaches = Object.keys(raw);                 // ERM, DA, PGDT, ...
+    const metrics   = Object.keys(raw[approaches[0]]);   // ["Std Acc", "CRR", "CRA"]
+    const datasets  = Object.keys(raw[approaches[0]][metrics[0]]); // ["CIFAR100", "CIFAR10", "SVHN", "MNIST"]
 
-    const svg = d3.select("#chart")
-        .append("svg")
-        .attr("width", width+margin.left+margin.right)
-        .attr("height", height+margin.top+margin.bottom)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+    // 填充下拉框
+    const metricSelect = d3.select("#metricSelect");
+    const datasetSelect = d3.select("#datasetSelect");
 
-    const x = d3.scaleBand()
-        .domain(data.map(d => d.Approach))
-        .range([0, width])
-        .padding(0.2);
+    metricSelect.selectAll("option")
+      .data(metrics)
+      .enter()
+      .append("option")
+      .attr("value", d => d)
+      .text(d => formatMetric(d));
 
-    const y = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.CIFAR100)])
-        .nice()
-        .range([height, 0]);
+    datasetSelect.selectAll("option")
+      .data(datasets)
+      .enter()
+      .append("option")
+      .attr("value", d => d)
+      .text(d => formatDataset(d));
 
-    svg.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x))
-        .selectAll("text")
-        .attr("transform", "rotate(20)")
-        .style("text-anchor", "start");
+    // 默认选择
+    metricSelect.property("value", metrics[0]);
+    datasetSelect.property("value", datasets[0]);
 
-    svg.append("g")
-        .call(d3.axisLeft(y));
+    function getCurrentData(metricKey, datasetKey) {
+      // 返回形如:
+      // [{ approach: "ERM", metric: "Std Acc", dataset: "CIFAR100", value: 81.03 }, ...]
+      return approaches.map(a => ({
+        approach: a,
+        metric: metricKey,
+        dataset: datasetKey,
+        value: raw[a][metricKey][datasetKey]
+      }));
+    }
 
-    const tooltip = d3.select("#tooltip");
+    function updateSidePanel(data, metricKey, datasetKey) {
+      const pillsBox = d3.select("#currentPills");
+      const statGrid = d3.select("#statGrid");
+      const legendBox = d3.select("#legendBox");
+      const subtitle = d3.select("#chartSubtitle");
 
-    svg.selectAll("rect")
+      pillsBox.html("");
+      statGrid.html("");
+      legendBox.html("");
+
+      pillsBox
+        .append("div")
+        .attr("class", "pill")
+        .html(`<span class="pill-dot"></span><span>Metric: ${formatMetric(metricKey)}</span>`);
+
+      pillsBox
+        .append("div")
+        .attr("class", "pill")
+        .html(`<span class="pill-dot" style="background:#a855f7;"></span>
+               <span>Dataset: ${formatDataset(datasetKey)}</span>`);
+
+      // 统计信息
+      const values = data.map(d => d.value);
+      const maxVal = d3.max(values);
+      const minVal = d3.min(values);
+      const meanVal = d3.mean(values);
+
+      statGrid.append("div").attr("class", "stat")
+        .html(`
+          <div class="stat-label">Highest</div>
+          <div class="stat-value">${maxVal.toFixed(2)}</div>
+        `);
+
+      statGrid.append("div").attr("class", "stat")
+        .html(`
+          <div class="stat-label">Lowest</div>
+          <div class="stat-value">${minVal.toFixed(2)}</div>
+        `);
+
+      statGrid.append("div").attr("class", "stat")
+        .html(`
+          <div class="stat-label">Average</div>
+          <div class="stat-value">${meanVal.toFixed(2)}</div>
+        `);
+
+      statGrid.append("div").attr("class", "stat")
+        .html(`
+          <div class="stat-label">Approaches</div>
+          <div class="stat-value">${data.length}</div>
+        `);
+
+      // 图例（颜色解释：每个方法一个颜色）
+      legendBox.append("div")
+        .style("margin-bottom", "4px")
+        .text("Color encodes robustness approach:");
+
+      const legendItems = legendBox.selectAll(".legend-item")
         .data(data)
-        .enter().append("rect")
-        .attr("x", d => x(d.Approach))
-        .attr("y", height)
-        .attr("width", x.bandwidth())
+        .enter()
+        .append("div")
+        .attr("class", "legend-item");
+
+      legendItems.append("div")
+        .attr("class", "legend-swatch")
+        .style("background", d => colorScale(d.approach));
+
+      legendItems.append("div")
+        .text(d => d.approach);
+
+      subtitle.text(`${formatMetric(metricKey)} on ${formatDataset(datasetKey)}`);
+    }
+
+    function updateChart(metricKey, datasetKey, animate = true) {
+      const data = getCurrentData(metricKey, datasetKey);
+
+      xScale
+        .domain(data.map(d => d.approach))
+        .range([0, innerWidth]);
+
+      yScale
+        .domain([0, d3.max(data, d => d.value) * 1.05])
+        .range([innerHeight, 0])
+        .nice();
+
+      colorScale.domain(approaches);
+
+      // 轴
+      const xAxis = d3.axisBottom(xScale);
+      const yAxis = d3.axisLeft(yScale).ticks(6);
+
+      xAxisGroup.transition().duration(animate ? 500 : 0)
+        .call(xAxis)
+        .selectAll("text")
+        .attr("transform", "rotate(18)")
+        .style("text-anchor", "start")
+        .style("font-size", "11px");
+
+      yAxisGroup.transition().duration(animate ? 500 : 0)
+        .call(yAxis);
+
+      // grid lines
+      yGrid
+        .call(d3.axisLeft(yScale)
+          .tickSize(-innerWidth)
+          .tickFormat(""))
+        .selectAll("line")
+        .attr("stroke-dasharray", "2,4");
+
+      // bars
+      const bars = chartGroup.selectAll(".bar")
+        .data(data, d => d.approach);
+
+      bars.enter()
+        .append("rect")
+        .attr("class", "bar")
+        .attr("x", d => xScale(d.approach))
+        .attr("width", xScale.bandwidth())
+        .attr("y", innerHeight)
         .attr("height", 0)
-        .attr("fill", "#4e79a7")
+        .attr("fill", d => colorScale(d.approach))
         .on("mouseover", function(event, d) {
-            tooltip.style("visibility", "visible")
-                .html(`<strong>${d.Approach}</strong><br>CIFAR100: ${d.CIFAR100}`);
-            d3.select(this).style("opacity", 0.7);
+          tooltip
+            .style("visibility", "visible")
+            .html(`
+              <strong>${d.approach}</strong><br/>
+              ${formatMetric(d.metric)}<br/>
+              ${formatDataset(d.dataset)}: ${d.value.toFixed(2)}
+            `);
+          d3.select(this).style("opacity", 0.8);
         })
-        .on("mousemove", function(event){
-            tooltip.style("top", (event.pageY-20)+"px")
-                   .style("left", (event.pageX+10)+"px");
+        .on("mousemove", function(event) {
+          tooltip
+            .style("top", (event.pageY - 32) + "px")
+            .style("left", (event.pageX + 12) + "px");
         })
-        .on("mouseout", function(){
-            tooltip.style("visibility", "hidden");
-            d3.select(this).style("opacity", 1);
+        .on("mouseout", function() {
+          tooltip.style("visibility", "hidden");
+          d3.select(this).style("opacity", 1);
         })
+        .merge(bars)
         .transition()
-        .duration(900)
-        .attr("y", d => y(d.CIFAR100))
-        .attr("height", d => height - y(d.CIFAR100));
+        .duration(animate ? 700 : 0)
+        .attr("x", d => xScale(d.approach))
+        .attr("width", xScale.bandwidth())
+        .attr("y", d => yScale(d.value))
+        .attr("height", d => innerHeight - yScale(d.value))
+        .attr("fill", d => colorScale(d.approach));
 
-});
+      bars.exit()
+        .transition()
+        .duration(400)
+        .attr("y", innerHeight)
+        .attr("height", 0)
+        .remove();
+
+      // 更新右侧信息面板
+      updateSidePanel(data, metricKey, datasetKey);
+    }
+
+    // 初始渲染（自动触发一次 transition）
+    updateChart(metrics[0], datasets[0], true);
+
+    metricSelect.on("change", () => {
+      const metricKey = metricSelect.property("value");
+      const datasetKey = datasetSelect.property("value");
+      updateChart(metricKey, datasetKey, true);
+    });
+
+    datasetSelect.on("change", () => {
+      const metricKey = metricSelect.property("value");
+      const datasetKey = datasetSelect.property("value");
+      updateChart(metricKey, datasetKey, true);
+    });
+
+  }).catch(err => {
+    console.error("Failed to load data_1.json:", err);
+    d3.select("#chart-container")
+      .append("p")
+      .style("color", "tomato")
+      .text("Failed to load data_1.json. Please check the file path and JSON format.");
+  });
 </script>
-
 </body>
 </html>
