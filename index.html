@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -186,6 +186,22 @@
       filter: drop-shadow(0 0 8px rgba(56,189,248,0.45));
     }
 
+    .heat-cell {
+      rx: 2;
+      ry: 2;
+      cursor: pointer;
+    }
+
+    .heat-cell.dimmed {
+      opacity: 0.35;
+    }
+
+    .heat-cell:hover {
+      stroke: #f9fafb;
+      stroke-width: 0.8px;
+      filter: drop-shadow(0 0 8px rgba(56,189,248,0.5));
+    }
+
     .tooltip {
       position: absolute;
       pointer-events: none;
@@ -337,7 +353,6 @@
         grid-template-columns: minmax(0, 1fr);
       }
     }
-
   </style>
 </head>
 <body>
@@ -347,11 +362,11 @@
     <p>
       Interactive D3.js visualisation for IDV Assignment&nbsp;4.
       The first chart explores <strong>methods × metrics × datasets</strong> (data_1.json),
-      and the second chart explores <strong>methods × attacks</strong> (data_2.json).
+      and the second chart uses a <strong>heatmap for methods × attacks</strong> (data_2.json).
     </p>
     <div class="badge-row">
       <span class="header-badge">Data-Driven · D3.js · GitHub Pages</span>
-      <span class="header-badge">Std Acc · CRR · CRA · Attacks</span>
+      <span class="header-badge">Std Acc · CRR · CRA · Attack Heatmap</span>
     </div>
   </header>
 
@@ -393,47 +408,47 @@
 
         <div id="currentPills"></div>
 
-        <div class="stat-grid" id="statGrid">
-          <!-- Stats injected by JS -->
-        </div>
+        <div class="stat-grid" id="statGrid"></div>
 
-        <div class="legend" id="legendBox">
-          <!-- Legend injected by JS -->
-        </div>
+        <div class="legend" id="legendBox"></div>
 
         <div class="hint">
+          • Top chart: grouped bar chart for <code>data_1.json</code>.<br/>
           • Hover bars to see exact values (interaction).<br/>
-          • Bars animate when you change metric / dataset (transition).<br/>
-          • Uses all metrics (Std Acc / CRR / CRA) and all datasets from <code>data_1.json</code>.
+          • Bars animate when you change metric / dataset (transition).
         </div>
       </div>
     </aside>
   </div>
 
-  <!-- Bottom layout: attacks chart (data_2.json) -->
+  <!-- Bottom layout: attacks heatmap (data_2.json) -->
   <div class="layout-bottom">
     <section class="card">
       <div class="card-inner">
         <div class="card-header">
           <div>
-            <div class="card-title">Attacks View</div>
+            <div class="card-title">Attacks Heatmap</div>
             <div class="card-subtitle" id="chart2Subtitle">
-              Loading attacks & methods…
+              Accuracy of methods under different attacks (data_2.json)
             </div>
           </div>
         </div>
 
         <div class="controls-wide">
           <div class="control-group">
-            <span class="control-label">Perspective</span>
-            <select id="viewModeSelect">
-              <option value="byApproach">By Approach: robustness profile across attacks</option>
-              <option value="byAttack">By Attack: compare methods under one attack</option>
+            <span class="control-label">Attack order</span>
+            <select id="attackSortSelect">
+              <option value="original">Original (table order)</option>
+              <option value="alpha">Attack name A → Z</option>
+              <option value="meanDesc">Mean accuracy high → low</option>
+              <option value="meanAsc">Mean accuracy low → high</option>
             </select>
           </div>
           <div class="control-group">
-            <span class="control-label">Selection</span>
-            <select id="viewEntitySelect"></select>
+            <span class="control-label">Highlight method</span>
+            <select id="highlightMethodSelect">
+              <option value="all">All methods</option>
+            </select>
           </div>
         </div>
 
@@ -442,8 +457,9 @@
         </div>
 
         <div class="hint">
-          • Uses all attacks and methods from <code>data_2.json</code>.<br/>
-          • Switch perspective to explore either one method across attacks, or one attack across methods.
+          • Bottom chart: heatmap for <code>data_2.json</code> (attacks × methods).<br/>
+          • Use the controls to reorder attacks and highlight a specific method.<br/>
+          • Hover cells to inspect exact accuracy values (interaction + animated transitions).
         </div>
       </div>
     </section>
@@ -569,9 +585,6 @@
     }
 
     d3.json("data_1.json").then(raw => {
-      // raw 结构:
-      // { "ERM":{ "Std Acc":{...}, "CRR":{...}, "CRA":{...} }, "DA":{...}, ... }
-
       const approaches = Object.keys(raw);
       const metrics   = Object.keys(raw[approaches[0]]);
       const datasets  = Object.keys(raw[approaches[0]][metrics[0]]);
@@ -709,136 +722,112 @@
   })();
 
   /******************************************
-   * Chart 2 – data_2.json (attacks view)
+   * Chart 2 – data_2.json (attacks heatmap)
    ******************************************/
   (function initChart2() {
     const svg2 = d3.select("#chart2Svg");
-    const margin2 = { top: 40, right: 20, bottom: 110, left: 70 };
+    const margin2 = { top: 40, right: 20, bottom: 110, left: 110 };
     const innerWidth2 = 900 - margin2.left - margin2.right;
     const innerHeight2 = 380 - margin2.top - margin2.bottom;
 
     const chartGroup2 = svg2.append("g")
       .attr("transform", `translate(${margin2.left},${margin2.top})`);
 
-    const x2 = d3.scaleBand().padding(0.25);
-    const y2 = d3.scaleLinear();
-
+    const x2 = d3.scaleBand().padding(0.1);
+    const y2 = d3.scaleBand().padding(0.1);
+    const yAxisGroup2 = chartGroup2.append("g")
+      .attr("class", "axis y-axis");
     const xAxisGroup2 = chartGroup2.append("g")
       .attr("class", "axis x-axis")
       .attr("transform", `translate(0, ${innerHeight2})`);
-    const yAxisGroup2 = chartGroup2.append("g")
-      .attr("class", "axis y-axis");
-
     const yGrid2 = chartGroup2.append("g").attr("class", "y-grid");
 
-    const viewModeSelect = d3.select("#viewModeSelect");
-    const viewEntitySelect = d3.select("#viewEntitySelect");
+    const attackSortSelect = d3.select("#attackSortSelect");
+    const highlightMethodSelect = d3.select("#highlightMethodSelect");
     const subtitle2 = d3.select("#chart2Subtitle");
 
     d3.json("data_2.json").then(raw2 => {
-      // raw2 结构:
-      // {
-      //   "No Attack": { "ERM":94.85, "DA":94.21, ... },
-      //   "TIFGSM":    { ... },
-      //   ...
-      // }
+      // raw2: { Attack: {ERM:..., DA:..., ...}, ... }
+      const attacksOriginal = Object.keys(raw2);
+      const methods = Object.keys(raw2[attacksOriginal[0]]);
 
-      const attacks = Object.keys(raw2);
-      const approaches2 = Object.keys(raw2[attacks[0]]);
+      // 填充 highlight method 下拉框
+      highlightMethodSelect.selectAll("option.method-opt")
+        .data(methods)
+        .enter()
+        .append("option")
+        .attr("class", "method-opt")
+        .attr("value", d => d)
+        .text(d => d);
 
-      function getDataByApproach(approachKey) {
-        // [{ label: attack, value: raw2[attack][approachKey] }, ...]
-        return attacks.map(atk => ({
-          label: atk,
-          value: raw2[atk][approachKey],
-          approach: approachKey
-        }));
+      // 构建完整 cell 数组
+      const allCells = [];
+      attacksOriginal.forEach(atk => {
+        methods.forEach(m => {
+          allCells.push({
+            attack: atk,
+            method: m,
+            value: raw2[atk][m]
+          });
+        });
+      });
+
+      const globalMin = d3.min(allCells, d => d.value);
+      const globalMax = d3.max(allCells, d => d.value);
+
+      function colorForValue(v) {
+        const t = (v - globalMin) / (globalMax - globalMin || 1);
+        const light = 22 + t * 38; // 22% ~ 60%
+        const hue = 200 - t * 40;  // 从蓝青到蓝紫
+        return `hsl(${hue}, 88%, ${light}%)`;
       }
 
-      function getDataByAttack(attackKey) {
-        // [{ label: approach, value: raw2[attackKey][approach] }, ...]
-        return approaches2.map(ap => ({
-          label: ap,
-          value: raw2[attackKey][ap],
-          attack: attackKey
-        }));
-      }
-
-      // 初始化 Selection 下拉框
-      function refreshEntityOptions() {
-        const mode = viewModeSelect.property("value");
-        let options;
-        if (mode === "byApproach") {
-          options = approaches2;
-        } else {
-          options = attacks;
+      function computeAttackOrder(mode) {
+        if (mode === "original") {
+          return attacksOriginal.slice();
         }
-        const sel = viewEntitySelect
-          .selectAll("option")
-          .data(options, d => d);
-
-        sel.enter()
-          .append("option")
-          .merge(sel)
-          .attr("value", d => d)
-          .text(d => d);
-
-        sel.exit().remove();
-
-        // 默认选第一个
-        viewEntitySelect.property("value", options[0]);
-      }
-
-      function colorForValue(v, minV, maxV) {
-        // 简单根据数值高低调整亮度，营造科技渐变感
-        const t = (v - minV) / (maxV - minV || 1);
-        const light = 25 + t * 25; // 25% ~ 50%
-        return `hsl(199, 88%, ${light}%)`;
-      }
-
-      function updateChart2(animate = true) {
-        const mode = viewModeSelect.property("value");
-        const key  = viewEntitySelect.property("value");
-
-        let data2;
-        let subtitleText;
-
-        if (mode === "byApproach") {
-          data2 = getDataByApproach(key);
-          subtitleText = `Robustness profile of approach "${key}" across attacks`;
-        } else {
-          data2 = getDataByAttack(key);
-          subtitleText = `Methods under attack "${key}"`;
+        if (mode === "alpha") {
+          return attacksOriginal.slice().sort((a, b) => d3.ascending(a.toLowerCase(), b.toLowerCase()));
         }
+        // 计算每个 attack 的平均值
+        const attackMeans = attacksOriginal.map(atk => {
+          const vals = methods.map(m => raw2[atk][m]);
+          return { attack: atk, mean: d3.mean(vals) };
+        });
+        if (mode === "meanDesc") {
+          return attackMeans.sort((a, b) => d3.descending(a.mean, b.mean)).map(d => d.attack);
+        }
+        if (mode === "meanAsc") {
+          return attackMeans.sort((a, b) => d3.ascending(a.mean, b.mean)).map(d => d.attack);
+        }
+        return attacksOriginal.slice();
+      }
 
-        subtitle2.text(subtitleText);
+      function updateHeatmap(animate = true) {
+        const sortMode = attackSortSelect.property("value");
+        const highlightMethod = highlightMethodSelect.property("value");
 
-        const values = data2.map(d => d.value);
-        const maxV = d3.max(values);
-        const minV = d3.min(values);
+        const attacks = computeAttackOrder(sortMode);
 
-        x2
-          .domain(data2.map(d => d.label))
-          .range([0, innerWidth2]);
-
-        y2
-          .domain([0, maxV * 1.05])
-          .range([innerHeight2, 0])
-          .nice();
+        x2.domain(methods).range([0, innerWidth2]);
+        y2.domain(attacks).range([0, innerHeight2]);
 
         const xAxis2 = d3.axisBottom(x2);
-        const yAxis2 = d3.axisLeft(y2).ticks(6);
+        const yAxis2 = d3.axisLeft(y2);
 
         xAxisGroup2.transition().duration(animate ? 500 : 0)
           .call(xAxis2)
           .selectAll("text")
-          .attr("transform", "rotate(32)")
-          .style("text-anchor", "start")
-          .style("font-size", "10px");
+          .attr("transform", "rotate(0)")
+          .style("text-anchor", "middle")
+          .style("font-size", "11px");
 
         yAxisGroup2.transition().duration(animate ? 500 : 0)
-          .call(yAxis2);
+          .call(yAxis2)
+          .selectAll("text")
+          .style("font-size", "11px");
 
+        // grid lines（横向）
         yGrid2
           .call(d3.axisLeft(y2)
             .tickSize(-innerWidth2)
@@ -846,36 +835,29 @@
           .selectAll("line")
           .attr("stroke-dasharray", "2,4");
 
-        const bars2 = chartGroup2.selectAll(".bar.attack-bar")
-          .data(data2, d => d.label);
+        // 过滤 / 排序后的cells
+        const visibleCells = allCells.filter(d => attacks.indexOf(d.attack) !== -1);
 
-        bars2.enter()
+        const cells = chartGroup2.selectAll(".heat-cell")
+          .data(visibleCells, d => d.attack + "-" + d.method);
+
+        cells.enter()
           .append("rect")
-          .attr("class", "bar attack-bar")
-          .attr("x", d => x2(d.label))
+          .attr("class", "heat-cell")
+          .attr("x", d => x2(d.method))
+          .attr("y", d => y2(d.attack))
           .attr("width", x2.bandwidth())
-          .attr("y", innerHeight2)
-          .attr("height", 0)
-          .attr("fill", d => colorForValue(d.value, minV, maxV))
+          .attr("height", y2.bandwidth())
+          .attr("fill", d => colorForValue(d.value))
           .on("mouseover", function(event, d) {
             tooltip
               .style("visibility", "visible")
-              .html(() => {
-                if (mode === "byApproach") {
-                  return `
-                    <strong>${d.label}</strong><br/>
-                    Approach: ${d.approach}<br/>
-                    Accuracy: ${d.value.toFixed(2)}
-                  `;
-                } else {
-                  return `
-                    <strong>${d.label}</strong><br/>
-                    Attack: ${key}<br/>
-                    Accuracy: ${d.value.toFixed(2)}
-                  `;
-                }
-              });
-            d3.select(this).style("opacity", 0.85);
+              .html(`
+                <strong>${d.attack}</strong><br/>
+                Method: ${d.method}<br/>
+                Accuracy: ${d.value.toFixed(2)}
+              `);
+            d3.select(this).style("opacity", 0.9);
           })
           .on("mousemove", function(event) {
             tooltip
@@ -886,35 +868,44 @@
             tooltip.style("visibility", "hidden");
             d3.select(this).style("opacity", 1);
           })
-          .merge(bars2)
+          .merge(cells)
           .transition()
           .duration(animate ? 700 : 0)
-          .attr("x", d => x2(d.label))
+          .attr("x", d => x2(d.method))
+          .attr("y", d => y2(d.attack))
           .attr("width", x2.bandwidth())
-          .attr("y", d => y2(d.value))
-          .attr("height", d => innerHeight2 - y2(d.value))
-          .attr("fill", d => colorForValue(d.value, minV, maxV));
+          .attr("height", y2.bandwidth())
+          .attr("fill", d => colorForValue(d.value));
 
-        bars2.exit()
+        cells.exit()
           .transition()
           .duration(400)
-          .attr("y", innerHeight2)
-          .attr("height", 0)
+          .attr("opacity", 0)
           .remove();
+
+        // 高亮某个方法
+        chartGroup2.selectAll(".heat-cell")
+          .classed("dimmed", d =>
+            highlightMethod !== "all" && d.method !== highlightMethod
+          );
+
+        // 更新副标题
+        let sortLabel = "";
+        if (sortMode === "original") sortLabel = "original table order";
+        else if (sortMode === "alpha") sortLabel = "attack name (A → Z)";
+        else if (sortMode === "meanDesc") sortLabel = "mean accuracy (high → low)";
+        else if (sortMode === "meanAsc") sortLabel = "mean accuracy (low → high)";
+
+        subtitle2.text(
+          `Accuracy heatmap · Attacks on rows, methods on columns · Attack order: ${sortLabel}`
+        );
       }
 
-      // 初始化 selection + 初次渲染
-      refreshEntityOptions();
-      updateChart2(true);
+      // 初始化一次
+      updateHeatmap(true);
 
-      viewModeSelect.on("change", () => {
-        refreshEntityOptions();
-        updateChart2(true);
-      });
-
-      viewEntitySelect.on("change", () => {
-        updateChart2(true);
-      });
+      attackSortSelect.on("change", () => updateHeatmap(true));
+      highlightMethodSelect.on("change", () => updateHeatmap(false));
     }).catch(err => {
       console.error("Failed to load data_2.json:", err);
       d3.select("#chart2-container")
