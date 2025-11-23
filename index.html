@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -8,10 +8,11 @@
 
   <style>
     :root {
-      --bg: #0f172a;
-      --panel: #111827;
+      --bg: #020617;
+      --panel: #020617;
       --accent: #38bdf8;
       --accent-soft: rgba(56,189,248,0.18);
+      --accent-purple: #a855f7;
       --text-main: #e5e7eb;
       --text-muted: #9ca3af;
       --grid: #1f2937;
@@ -34,7 +35,7 @@
 
     .page {
       width: 100%;
-      max-width: 1120px;
+      max-width: 1160px;
     }
 
     header {
@@ -42,26 +43,49 @@
     }
 
     header h1 {
-      font-size: 1.8rem;
+      font-size: 1.9rem;
       margin: 0 0 8px;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
     }
 
     header p {
       margin: 0;
       color: var(--text-muted);
       font-size: 0.95rem;
-      max-width: 640px;
+      max-width: 720px;
     }
 
-    .layout {
+    .badge-row {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .header-badge {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      background: rgba(15,23,42,0.8);
+      color: var(--text-muted);
+    }
+
+    .layout-top {
       display: grid;
       grid-template-columns: minmax(0, 2.5fr) minmax(260px, 1fr);
       gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .layout-bottom {
+      margin-top: 4px;
     }
 
     @media (max-width: 880px) {
-      .layout {
+      .layout-top {
         grid-template-columns: minmax(0, 1fr);
       }
     }
@@ -83,9 +107,9 @@
       position: absolute;
       inset: -40%;
       background:
-        radial-gradient(circle at 0% 0%, rgba(56,189,248,0.16) 0, transparent 46%),
-        radial-gradient(circle at 100% 100%, rgba(59,130,246,0.12) 0, transparent 52%);
-      opacity: 0.9;
+        radial-gradient(circle at 0% 0%, rgba(56,189,248,0.14) 0, transparent 48%),
+        radial-gradient(circle at 100% 100%, rgba(168,85,247,0.12) 0, transparent 55%);
+      opacity: 0.85;
       pointer-events: none;
     }
 
@@ -113,15 +137,27 @@
       color: var(--accent);
     }
 
-    #chart-container {
-      margin-top: 8px;
+    .card-subtitle span {
+      color: var(--text-muted);
+    }
+
+    #chart-container,
+    #chart2-container {
+      margin-top: 10px;
     }
 
     svg {
       width: 100%;
-      height: 420px;
-      background: linear-gradient(180deg, rgba(15,23,42,0.9), #020617 70%);
+      background: linear-gradient(180deg, rgba(15,23,42,0.95), #020617 70%);
       border-radius: 12px;
+    }
+
+    #chartSvg {
+      height: 420px;
+    }
+
+    #chart2Svg {
+      height: 380px;
     }
 
     .axis path, .axis line {
@@ -147,7 +183,7 @@
     .bar:hover {
       stroke: #f9fafb;
       stroke-width: 1px;
-      filter: drop-shadow(0 0 8px rgba(56,189,248,0.4));
+      filter: drop-shadow(0 0 8px rgba(56,189,248,0.45));
     }
 
     .tooltip {
@@ -174,7 +210,7 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
-      margin-top: 6px;
+      margin-top: 8px;
     }
 
     .control-group {
@@ -193,7 +229,7 @@
     select {
       background: rgba(15,23,42,0.92);
       border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.6);
+      border: 1px solid rgba(148,163,184,0.7);
       padding: 6px 10px;
       color: var(--text-main);
       font-size: 0.82rem;
@@ -287,26 +323,46 @@
       opacity: 0.9;
     }
 
+    /* Bottom card specific */
+    .controls-wide {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.4fr);
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 720px) {
+      .controls,
+      .controls-wide {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
   </style>
 </head>
 <body>
 <div class="page">
   <header>
-    <h1>Robustness Benchmark Explorer</h1>
+    <h1>Robustness Benchmark Dashboard</h1>
     <p>
-      Interactive D3.js visualisation of robustness methods across datasets.
-      Use the controls to explore <strong>Std Acc</strong>, <strong>CRR</strong>, and <strong>CRA</strong>
-      for all approaches and datasets in <code>data_1.json</code>.
+      Interactive D3.js visualisation for IDV Assignment&nbsp;4.
+      The first chart explores <strong>methods × metrics × datasets</strong> (data_1.json),
+      and the second chart explores <strong>methods × attacks</strong> (data_2.json).
     </p>
+    <div class="badge-row">
+      <span class="header-badge">Data-Driven · D3.js · GitHub Pages</span>
+      <span class="header-badge">Std Acc · CRR · CRA · Attacks</span>
+    </div>
   </header>
 
-  <div class="layout">
-    <!-- Main chart card -->
+  <!-- Top layout: main metrics chart + side info -->
+  <div class="layout-top">
+    <!-- Main chart card (data_1.json) -->
     <section class="card">
       <div class="card-inner">
         <div class="card-header">
           <div>
-            <div class="card-title">Chart</div>
+            <div class="card-title">Metrics View</div>
             <div class="card-subtitle" id="chartSubtitle">
               Loading metric & dataset…
             </div>
@@ -348,40 +404,61 @@
         <div class="hint">
           • Hover bars to see exact values (interaction).<br/>
           • Bars animate when you change metric / dataset (transition).<br/>
-          • All approaches, metrics (Std Acc / CRR / CRA) and datasets
-            (CIFAR100 / CIFAR10 / SVHN / MNIST) are available from this dashboard.
+          • Uses all metrics (Std Acc / CRR / CRA) and all datasets from <code>data_1.json</code>.
         </div>
       </div>
     </aside>
+  </div>
+
+  <!-- Bottom layout: attacks chart (data_2.json) -->
+  <div class="layout-bottom">
+    <section class="card">
+      <div class="card-inner">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Attacks View</div>
+            <div class="card-subtitle" id="chart2Subtitle">
+              Loading attacks & methods…
+            </div>
+          </div>
+        </div>
+
+        <div class="controls-wide">
+          <div class="control-group">
+            <span class="control-label">Perspective</span>
+            <select id="viewModeSelect">
+              <option value="byApproach">By Approach: robustness profile across attacks</option>
+              <option value="byAttack">By Attack: compare methods under one attack</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <span class="control-label">Selection</span>
+            <select id="viewEntitySelect"></select>
+          </div>
+        </div>
+
+        <div id="chart2-container">
+          <svg id="chart2Svg" viewBox="0 0 900 380" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+
+        <div class="hint">
+          • Uses all attacks and methods from <code>data_2.json</code>.<br/>
+          • Switch perspective to explore either one method across attacks, or one attack across methods.
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>
 
 <script>
-  const svg = d3.select("#chartSvg");
   const tooltip = d3.select("#tooltip");
 
-  const margin = { top: 40, right: 20, bottom: 90, left: 70 };
-  const innerWidth = 900 - margin.left - margin.right;
-  const innerHeight = 420 - margin.top - margin.bottom;
-
-  const chartGroup = svg.append("g")
-    .attr("transform", `translate(${margin.left},${margin.top})`);
-
-  const xScale = d3.scaleBand().padding(0.25);
-  const yScale = d3.scaleLinear();
-  const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
-
-  const xAxisGroup = chartGroup.append("g").attr("class", "axis x-axis")
-    .attr("transform", `translate(0, ${innerHeight})`);
-  const yAxisGroup = chartGroup.append("g").attr("class", "axis y-axis");
-
-  // grid lines
-  const yGrid = chartGroup.append("g").attr("class", "y-grid");
-
+  /***********************
+   * Helper formatters
+   ************************/
   function formatMetric(metricKey) {
-    // "Std Acc" -> "Standard Accuracy"
     if (metricKey === "Std Acc") return "Standard Accuracy";
     if (metricKey === "CRR") return "Certified Robustness Rate";
     if (metricKey === "CRA") return "Certified Robust Accuracy";
@@ -389,58 +466,39 @@
   }
 
   function formatDataset(dsKey) {
-    // e.g. "CIFAR100" -> "CIFAR-100"
     if (dsKey === "CIFAR100") return "CIFAR-100";
     if (dsKey === "CIFAR10") return "CIFAR-10";
     return dsKey;
   }
 
-  d3.json("data_1.json").then(raw => {
-    // raw 结构:
-    // {
-    //   "ERM": { "Std Acc": { "CIFAR100": ..., ... }, "CRR": {...}, "CRA": {...} },
-    //   "DA":  { ... },
-    //   ...
-    // }
+  /***************************************
+   * Chart 1 – data_1.json (metrics view)
+   ***************************************/
+  (function initChart1() {
+    const svg = d3.select("#chartSvg");
+    const margin = { top: 40, right: 20, bottom: 90, left: 70 };
+    const innerWidth = 900 - margin.left - margin.right;
+    const innerHeight = 420 - margin.top - margin.bottom;
 
-    const approaches = Object.keys(raw);                 // ERM, DA, PGDT, ...
-    const metrics   = Object.keys(raw[approaches[0]]);   // ["Std Acc", "CRR", "CRA"]
-    const datasets  = Object.keys(raw[approaches[0]][metrics[0]]); // ["CIFAR100", "CIFAR10", "SVHN", "MNIST"]
+    const chartGroup = svg.append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // 填充下拉框
+    const xScale = d3.scaleBand().padding(0.25);
+    const yScale = d3.scaleLinear();
+    const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
+
+    const xAxisGroup = chartGroup.append("g")
+      .attr("class", "axis x-axis")
+      .attr("transform", `translate(0, ${innerHeight})`);
+    const yAxisGroup = chartGroup.append("g")
+      .attr("class", "axis y-axis");
+
+    const yGrid = chartGroup.append("g").attr("class", "y-grid");
+
     const metricSelect = d3.select("#metricSelect");
     const datasetSelect = d3.select("#datasetSelect");
 
-    metricSelect.selectAll("option")
-      .data(metrics)
-      .enter()
-      .append("option")
-      .attr("value", d => d)
-      .text(d => formatMetric(d));
-
-    datasetSelect.selectAll("option")
-      .data(datasets)
-      .enter()
-      .append("option")
-      .attr("value", d => d)
-      .text(d => formatDataset(d));
-
-    // 默认选择
-    metricSelect.property("value", metrics[0]);
-    datasetSelect.property("value", datasets[0]);
-
-    function getCurrentData(metricKey, datasetKey) {
-      // 返回形如:
-      // [{ approach: "ERM", metric: "Std Acc", dataset: "CIFAR100", value: 81.03 }, ...]
-      return approaches.map(a => ({
-        approach: a,
-        metric: metricKey,
-        dataset: datasetKey,
-        value: raw[a][metricKey][datasetKey]
-      }));
-    }
-
-    function updateSidePanel(data, metricKey, datasetKey) {
+    function updateSidePanel(data, metricKey, datasetKey, approaches, colorScale) {
       const pillsBox = d3.select("#currentPills");
       const statGrid = d3.select("#statGrid");
       const legendBox = d3.select("#legendBox");
@@ -458,10 +516,9 @@
       pillsBox
         .append("div")
         .attr("class", "pill")
-        .html(`<span class="pill-dot" style="background:#a855f7;"></span>
+        .html(`<span class="pill-dot" style="background:${"#a855f7"};"></span>
                <span>Dataset: ${formatDataset(datasetKey)}</span>`);
 
-      // 统计信息
       const values = data.map(d => d.value);
       const maxVal = d3.max(values);
       const minVal = d3.min(values);
@@ -491,136 +548,381 @@
           <div class="stat-value">${data.length}</div>
         `);
 
-      // 图例（颜色解释：每个方法一个颜色）
       legendBox.append("div")
         .style("margin-bottom", "4px")
         .text("Color encodes robustness approach:");
 
       const legendItems = legendBox.selectAll(".legend-item")
-        .data(data)
+        .data(approaches)
         .enter()
         .append("div")
         .attr("class", "legend-item");
 
       legendItems.append("div")
         .attr("class", "legend-swatch")
-        .style("background", d => colorScale(d.approach));
+        .style("background", d => colorScale(d));
 
       legendItems.append("div")
-        .text(d => d.approach);
+        .text(d => d);
 
       subtitle.text(`${formatMetric(metricKey)} on ${formatDataset(datasetKey)}`);
     }
 
-    function updateChart(metricKey, datasetKey, animate = true) {
-      const data = getCurrentData(metricKey, datasetKey);
+    d3.json("data_1.json").then(raw => {
+      // raw 结构:
+      // { "ERM":{ "Std Acc":{...}, "CRR":{...}, "CRA":{...} }, "DA":{...}, ... }
 
-      xScale
-        .domain(data.map(d => d.approach))
-        .range([0, innerWidth]);
+      const approaches = Object.keys(raw);
+      const metrics   = Object.keys(raw[approaches[0]]);
+      const datasets  = Object.keys(raw[approaches[0]][metrics[0]]);
 
-      yScale
-        .domain([0, d3.max(data, d => d.value) * 1.05])
-        .range([innerHeight, 0])
-        .nice();
+      metricSelect.selectAll("option")
+        .data(metrics)
+        .enter()
+        .append("option")
+        .attr("value", d => d)
+        .text(d => formatMetric(d));
 
-      colorScale.domain(approaches);
+      datasetSelect.selectAll("option")
+        .data(datasets)
+        .enter()
+        .append("option")
+        .attr("value", d => d)
+        .text(d => formatDataset(d));
 
-      // 轴
-      const xAxis = d3.axisBottom(xScale);
-      const yAxis = d3.axisLeft(yScale).ticks(6);
+      metricSelect.property("value", metrics[0]);
+      datasetSelect.property("value", datasets[0]);
 
-      xAxisGroup.transition().duration(animate ? 500 : 0)
-        .call(xAxis)
-        .selectAll("text")
-        .attr("transform", "rotate(18)")
-        .style("text-anchor", "start")
-        .style("font-size", "11px");
+      function getCurrentData(metricKey, datasetKey) {
+        return approaches.map(a => ({
+          approach: a,
+          metric: metricKey,
+          dataset: datasetKey,
+          value: raw[a][metricKey][datasetKey]
+        }));
+      }
 
-      yAxisGroup.transition().duration(animate ? 500 : 0)
-        .call(yAxis);
+      function updateChart(metricKey, datasetKey, animate = true) {
+        const data = getCurrentData(metricKey, datasetKey);
 
-      // grid lines
-      yGrid
-        .call(d3.axisLeft(yScale)
-          .tickSize(-innerWidth)
-          .tickFormat(""))
-        .selectAll("line")
-        .attr("stroke-dasharray", "2,4");
+        xScale
+          .domain(data.map(d => d.approach))
+          .range([0, innerWidth]);
 
-      // bars
-      const bars = chartGroup.selectAll(".bar")
-        .data(data, d => d.approach);
+        yScale
+          .domain([0, d3.max(data, d => d.value) * 1.05])
+          .range([innerHeight, 0])
+          .nice();
 
-      bars.enter()
-        .append("rect")
-        .attr("class", "bar")
-        .attr("x", d => xScale(d.approach))
-        .attr("width", xScale.bandwidth())
-        .attr("y", innerHeight)
-        .attr("height", 0)
-        .attr("fill", d => colorScale(d.approach))
-        .on("mouseover", function(event, d) {
-          tooltip
-            .style("visibility", "visible")
-            .html(`
-              <strong>${d.approach}</strong><br/>
-              ${formatMetric(d.metric)}<br/>
-              ${formatDataset(d.dataset)}: ${d.value.toFixed(2)}
-            `);
-          d3.select(this).style("opacity", 0.8);
-        })
-        .on("mousemove", function(event) {
-          tooltip
-            .style("top", (event.pageY - 32) + "px")
-            .style("left", (event.pageX + 12) + "px");
-        })
-        .on("mouseout", function() {
-          tooltip.style("visibility", "hidden");
-          d3.select(this).style("opacity", 1);
-        })
-        .merge(bars)
-        .transition()
-        .duration(animate ? 700 : 0)
-        .attr("x", d => xScale(d.approach))
-        .attr("width", xScale.bandwidth())
-        .attr("y", d => yScale(d.value))
-        .attr("height", d => innerHeight - yScale(d.value))
-        .attr("fill", d => colorScale(d.approach));
+        colorScale.domain(approaches);
 
-      bars.exit()
-        .transition()
-        .duration(400)
-        .attr("y", innerHeight)
-        .attr("height", 0)
-        .remove();
+        const xAxis = d3.axisBottom(xScale);
+        const yAxis = d3.axisLeft(yScale).ticks(6);
 
-      // 更新右侧信息面板
-      updateSidePanel(data, metricKey, datasetKey);
-    }
+        xAxisGroup.transition().duration(animate ? 500 : 0)
+          .call(xAxis)
+          .selectAll("text")
+          .attr("transform", "rotate(18)")
+          .style("text-anchor", "start")
+          .style("font-size", "11px");
 
-    // 初始渲染（自动触发一次 transition）
-    updateChart(metrics[0], datasets[0], true);
+        yAxisGroup.transition().duration(animate ? 500 : 0)
+          .call(yAxis);
 
-    metricSelect.on("change", () => {
-      const metricKey = metricSelect.property("value");
-      const datasetKey = datasetSelect.property("value");
-      updateChart(metricKey, datasetKey, true);
+        yGrid
+          .call(d3.axisLeft(yScale)
+            .tickSize(-innerWidth)
+            .tickFormat(""))
+          .selectAll("line")
+          .attr("stroke-dasharray", "2,4");
+
+        const bars = chartGroup.selectAll(".bar")
+          .data(data, d => d.approach);
+
+        bars.enter()
+          .append("rect")
+          .attr("class", "bar")
+          .attr("x", d => xScale(d.approach))
+          .attr("width", xScale.bandwidth())
+          .attr("y", innerHeight)
+          .attr("height", 0)
+          .attr("fill", d => colorScale(d.approach))
+          .on("mouseover", function(event, d) {
+            tooltip
+              .style("visibility", "visible")
+              .html(`
+                <strong>${d.approach}</strong><br/>
+                ${formatMetric(d.metric)}<br/>
+                ${formatDataset(d.dataset)}: ${d.value.toFixed(2)}
+              `);
+            d3.select(this).style("opacity", 0.8);
+          })
+          .on("mousemove", function(event) {
+            tooltip
+              .style("top", (event.pageY - 32) + "px")
+              .style("left", (event.pageX + 12) + "px");
+          })
+          .on("mouseout", function() {
+            tooltip.style("visibility", "hidden");
+            d3.select(this).style("opacity", 1);
+          })
+          .merge(bars)
+          .transition()
+          .duration(animate ? 700 : 0)
+          .attr("x", d => xScale(d.approach))
+          .attr("width", xScale.bandwidth())
+          .attr("y", d => yScale(d.value))
+          .attr("height", d => innerHeight - yScale(d.value))
+          .attr("fill", d => colorScale(d.approach));
+
+        bars.exit()
+          .transition()
+          .duration(400)
+          .attr("y", innerHeight)
+          .attr("height", 0)
+          .remove();
+
+        updateSidePanel(data, metricKey, datasetKey, approaches, colorScale);
+      }
+
+      // 初次渲染
+      updateChart(metrics[0], datasets[0], true);
+
+      metricSelect.on("change", () => {
+        const metricKey = metricSelect.property("value");
+        const datasetKey = datasetSelect.property("value");
+        updateChart(metricKey, datasetKey, true);
+      });
+
+      datasetSelect.on("change", () => {
+        const metricKey = metricSelect.property("value");
+        const datasetKey = datasetSelect.property("value");
+        updateChart(metricKey, datasetKey, true);
+      });
+    }).catch(err => {
+      console.error("Failed to load data_1.json:", err);
+      d3.select("#chart-container")
+        .append("p")
+        .style("color", "tomato")
+        .text("Failed to load data_1.json. Please check the file path and JSON format.");
     });
+  })();
 
-    datasetSelect.on("change", () => {
-      const metricKey = metricSelect.property("value");
-      const datasetKey = datasetSelect.property("value");
-      updateChart(metricKey, datasetKey, true);
+  /******************************************
+   * Chart 2 – data_2.json (attacks view)
+   ******************************************/
+  (function initChart2() {
+    const svg2 = d3.select("#chart2Svg");
+    const margin2 = { top: 40, right: 20, bottom: 110, left: 70 };
+    const innerWidth2 = 900 - margin2.left - margin2.right;
+    const innerHeight2 = 380 - margin2.top - margin2.bottom;
+
+    const chartGroup2 = svg2.append("g")
+      .attr("transform", `translate(${margin2.left},${margin2.top})`);
+
+    const x2 = d3.scaleBand().padding(0.25);
+    const y2 = d3.scaleLinear();
+
+    const xAxisGroup2 = chartGroup2.append("g")
+      .attr("class", "axis x-axis")
+      .attr("transform", `translate(0, ${innerHeight2})`);
+    const yAxisGroup2 = chartGroup2.append("g")
+      .attr("class", "axis y-axis");
+
+    const yGrid2 = chartGroup2.append("g").attr("class", "y-grid");
+
+    const viewModeSelect = d3.select("#viewModeSelect");
+    const viewEntitySelect = d3.select("#viewEntitySelect");
+    const subtitle2 = d3.select("#chart2Subtitle");
+
+    d3.json("data_2.json").then(raw2 => {
+      // raw2 结构:
+      // {
+      //   "No Attack": { "ERM":94.85, "DA":94.21, ... },
+      //   "TIFGSM":    { ... },
+      //   ...
+      // }
+
+      const attacks = Object.keys(raw2);
+      const approaches2 = Object.keys(raw2[attacks[0]]);
+
+      function getDataByApproach(approachKey) {
+        // [{ label: attack, value: raw2[attack][approachKey] }, ...]
+        return attacks.map(atk => ({
+          label: atk,
+          value: raw2[atk][approachKey],
+          approach: approachKey
+        }));
+      }
+
+      function getDataByAttack(attackKey) {
+        // [{ label: approach, value: raw2[attackKey][approach] }, ...]
+        return approaches2.map(ap => ({
+          label: ap,
+          value: raw2[attackKey][ap],
+          attack: attackKey
+        }));
+      }
+
+      // 初始化 Selection 下拉框
+      function refreshEntityOptions() {
+        const mode = viewModeSelect.property("value");
+        let options;
+        if (mode === "byApproach") {
+          options = approaches2;
+        } else {
+          options = attacks;
+        }
+        const sel = viewEntitySelect
+          .selectAll("option")
+          .data(options, d => d);
+
+        sel.enter()
+          .append("option")
+          .merge(sel)
+          .attr("value", d => d)
+          .text(d => d);
+
+        sel.exit().remove();
+
+        // 默认选第一个
+        viewEntitySelect.property("value", options[0]);
+      }
+
+      function colorForValue(v, minV, maxV) {
+        // 简单根据数值高低调整亮度，营造科技渐变感
+        const t = (v - minV) / (maxV - minV || 1);
+        const light = 25 + t * 25; // 25% ~ 50%
+        return `hsl(199, 88%, ${light}%)`;
+      }
+
+      function updateChart2(animate = true) {
+        const mode = viewModeSelect.property("value");
+        const key  = viewEntitySelect.property("value");
+
+        let data2;
+        let subtitleText;
+
+        if (mode === "byApproach") {
+          data2 = getDataByApproach(key);
+          subtitleText = `Robustness profile of approach "${key}" across attacks`;
+        } else {
+          data2 = getDataByAttack(key);
+          subtitleText = `Methods under attack "${key}"`;
+        }
+
+        subtitle2.text(subtitleText);
+
+        const values = data2.map(d => d.value);
+        const maxV = d3.max(values);
+        const minV = d3.min(values);
+
+        x2
+          .domain(data2.map(d => d.label))
+          .range([0, innerWidth2]);
+
+        y2
+          .domain([0, maxV * 1.05])
+          .range([innerHeight2, 0])
+          .nice();
+
+        const xAxis2 = d3.axisBottom(x2);
+        const yAxis2 = d3.axisLeft(y2).ticks(6);
+
+        xAxisGroup2.transition().duration(animate ? 500 : 0)
+          .call(xAxis2)
+          .selectAll("text")
+          .attr("transform", "rotate(32)")
+          .style("text-anchor", "start")
+          .style("font-size", "10px");
+
+        yAxisGroup2.transition().duration(animate ? 500 : 0)
+          .call(yAxis2);
+
+        yGrid2
+          .call(d3.axisLeft(y2)
+            .tickSize(-innerWidth2)
+            .tickFormat(""))
+          .selectAll("line")
+          .attr("stroke-dasharray", "2,4");
+
+        const bars2 = chartGroup2.selectAll(".bar.attack-bar")
+          .data(data2, d => d.label);
+
+        bars2.enter()
+          .append("rect")
+          .attr("class", "bar attack-bar")
+          .attr("x", d => x2(d.label))
+          .attr("width", x2.bandwidth())
+          .attr("y", innerHeight2)
+          .attr("height", 0)
+          .attr("fill", d => colorForValue(d.value, minV, maxV))
+          .on("mouseover", function(event, d) {
+            tooltip
+              .style("visibility", "visible")
+              .html(() => {
+                if (mode === "byApproach") {
+                  return `
+                    <strong>${d.label}</strong><br/>
+                    Approach: ${d.approach}<br/>
+                    Accuracy: ${d.value.toFixed(2)}
+                  `;
+                } else {
+                  return `
+                    <strong>${d.label}</strong><br/>
+                    Attack: ${key}<br/>
+                    Accuracy: ${d.value.toFixed(2)}
+                  `;
+                }
+              });
+            d3.select(this).style("opacity", 0.85);
+          })
+          .on("mousemove", function(event) {
+            tooltip
+              .style("top", (event.pageY - 32) + "px")
+              .style("left", (event.pageX + 12) + "px");
+          })
+          .on("mouseout", function() {
+            tooltip.style("visibility", "hidden");
+            d3.select(this).style("opacity", 1);
+          })
+          .merge(bars2)
+          .transition()
+          .duration(animate ? 700 : 0)
+          .attr("x", d => x2(d.label))
+          .attr("width", x2.bandwidth())
+          .attr("y", d => y2(d.value))
+          .attr("height", d => innerHeight2 - y2(d.value))
+          .attr("fill", d => colorForValue(d.value, minV, maxV));
+
+        bars2.exit()
+          .transition()
+          .duration(400)
+          .attr("y", innerHeight2)
+          .attr("height", 0)
+          .remove();
+      }
+
+      // 初始化 selection + 初次渲染
+      refreshEntityOptions();
+      updateChart2(true);
+
+      viewModeSelect.on("change", () => {
+        refreshEntityOptions();
+        updateChart2(true);
+      });
+
+      viewEntitySelect.on("change", () => {
+        updateChart2(true);
+      });
+    }).catch(err => {
+      console.error("Failed to load data_2.json:", err);
+      d3.select("#chart2-container")
+        .append("p")
+        .style("color", "tomato")
+        .text("Failed to load data_2.json. Please check the file path and JSON format.");
     });
-
-  }).catch(err => {
-    console.error("Failed to load data_1.json:", err);
-    d3.select("#chart-container")
-      .append("p")
-      .style("color", "tomato")
-      .text("Failed to load data_1.json. Please check the file path and JSON format.");
-  });
+  })();
 </script>
 </body>
 </html>
