@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>IDV Assignment 4 – Data Visualisation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- Load D3 -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 40px auto;
+        max-width: 1000px;
+        line-height: 1.6;
+    }
+    h1 { margin-bottom: 0.3em; }
+    #chart {
+        margin-top: 40px;
+    }
+    .bar:hover {
+        opacity: 0.6;
+    }
+    .tooltip {
+        position: absolute;
+        padding: 6px 10px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        visibility: hidden;
+        pointer-events: none;
+    }
+</style>
+
+</head>
+
+<body>
+
+<h1>IDV Assignment 4 – Interactive D3.js Chart</h1>
+<p>This page visualises the provided dataset (data_1.json). It includes one interaction (hover tooltip) and one transition animation.</p>
+
+<div id="chart"></div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ------------------------------------------------------
+// Load Data
+// ------------------------------------------------------
+d3.json("data_1.json").then(data => {
+
+    // Expected format (example from instructions):
+    // [
+    //   { "Approach": "ERM", "CIFAR-100": 81.03, "CIFAR-10": 94.85, ... },
+    // ]
+
+    // Extract categories
+    const approaches = data.map(d => d.Approach);
+    const datasets = Object.keys(data[0]).slice(1); // remove "Approach"
+
+    // Chart size
+    const margin = { top: 50, right: 50, bottom: 80, left: 80 };
+    const width = 900 - margin.left - margin.right;
+    const height = 500 - margin.top - margin.bottom;
+
+    const svg = d3.select("#chart")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Scales
+    const x0 = d3.scaleBand()
+        .domain(approaches)
+        .range([0, width])
+        .padding(0.2);
+
+    const x1 = d3.scaleBand()
+        .domain(datasets)
+        .range([0, x0.bandwidth()])
+        .padding(0.1);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d3.max(datasets, key => +d[key]))])
+        .nice()
+        .range([height, 0]);
+
+    const color = d3.scaleOrdinal()
+        .domain(datasets)
+        .range(d3.schemeTableau10);
+
+    // Axes
+    svg.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x0))
+        .selectAll("text")
+        .attr("transform", "rotate(20)")
+        .style("text-anchor", "start");
+
+    svg.append("g")
+        .call(d3.axisLeft(y));
+
+    // Tooltip
+    const tooltip = d3.select("#tooltip");
+
+    // Bars
+    const groups = svg.selectAll("g.layer")
+        .data(data)
+        .enter()
+        .append("g")
+        .attr("transform", d => `translate(${x0(d.Approach)},0)`);
+
+    groups.selectAll("rect")
+        .data(d => datasets.map(key => ({ key: key, value: +d[key] })))
+        .enter()
+        .append("rect")
+        .attr("class", "bar")
+        .attr("x", d => x1(d.key))
+        .attr("y", height)
+        .attr("width", x1.bandwidth())
+        .attr("height", 0)
+        .attr("fill", d => color(d.key))
+        .on("mouseover", function(event, d) {
+            tooltip.style("visibility", "visible")
+                .html(`<strong>${d.key}</strong><br>Value: ${d.value}`);
+            d3.select(this).style("opacity", 0.7);
+        })
+        .on("mousemove", function(event) {
+            tooltip.style("top", (event.pageY - 30) + "px")
+                .style("left", (event.pageX + 10) + "px");
+        })
+        .on("mouseout", function() {
+            tooltip.style("visibility", "hidden");
+            d3.select(this).style("opacity", 1.0);
+        })
+        // Transition animation
+        .transition()
+        .duration(900)
+        .attr("y", d => y(d.value))
+        .attr("height", d => height - y(d.value));
+
+    // Legend
+    const legend = svg.append("g")
+        .attr("transform", `translate(${width - 120},0)`);
+
+    datasets.forEach((key, i) => {
+        const g = legend.append("g")
+            .attr("transform", `translate(0, ${i * 20})`);
+
+        g.append("rect")
+            .attr("width", 12)
+            .attr("height", 12)
+            .attr("fill", color(key));
+
+        g.append("text")
+            .attr("x", 18)
+            .attr("y", 10)
+            .text(key)
+            .style("font-size", "12px");
+    });
+
+});
+</script>
+
+</body>
+</html>
